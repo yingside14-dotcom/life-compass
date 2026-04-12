@@ -260,24 +260,23 @@ input[type=range] { width: 100%; accent-color: var(--amber); margin: 4px 0; }
     </div>
     <div class="card" style="margin-bottom:16px">
       <div class="card-label">🎨 Vision Board</div>
-      <div class="card-hint">上傳照片，拼出你夢想中的生活樣貌</div>
-      <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-inp').click()" style="margin:0 0 10px">
+      <div class="card-hint">上傳一張代表你夢想生活的照片，永久保存</div>
+      <div id="vb-empty" class="upload-zone" onclick="document.getElementById('vb-file').click()" style="margin:0">
         <div class="uz-icon">🖼️</div>
-        <p>點擊上傳 或 拖曳照片</p>
-        <p class="sm">支援多選 · JPG / PNG / WEBP</p>
+        <p>點擊上傳照片</p>
+        <p class="sm">JPG / PNG / WEBP · 自動儲存到雲端</p>
       </div>
-      <input type="file" id="file-inp" multiple accept="image/*" style="display:none">
-      <div class="vb-controls" id="vb-controls" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-        <span style="font-size:11px;color:var(--text3);width:100%">版面排列</span>
-        <button class="layout-btn active" data-l="1" onclick="setLayout(1)">單欄</button>
-        <button class="layout-btn" data-l="2" onclick="setLayout(2)">兩欄</button>
-        <button class="layout-btn" data-l="3" onclick="setLayout(3)">雜誌</button>
-        <button class="layout-btn" data-l="4" onclick="setLayout(4)">四宮格</button>
-        <button class="layout-btn" data-l="5" onclick="setLayout(5)">五格</button>
-        <button class="layout-btn" data-l="6" onclick="setLayout(6)">六格</button>
+      <div id="vb-preview" style="display:none;position:relative;border-radius:10px;overflow:hidden">
+        <img id="vb-img" src="" style="width:100%;display:block;border-radius:10px;max-height:320px;object-fit:cover">
+        <button onclick="document.getElementById('vb-file').click()"
+          style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:99px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:var(--sans)">
+          更換照片
+        </button>
       </div>
-      <div class="board layout-2" id="vb-board"></div>
-      <p class="vb-hint" id="vb-hint" style="display:none;margin-top:8px">點圖片下方可加說明文字 · 注意：照片重新整理後會消失，記得截圖保存 📸</p>
+      <div id="vb-uploading" style="display:none;text-align:center;padding:16px;font-size:13px;color:var(--text3)">
+        上傳中…
+      </div>
+      <input type="file" id="vb-file" accept="image/*" style="display:none">
     </div>
   </div>
 
@@ -405,7 +404,7 @@ const ROW_ID = 1;
 
 let state = {
   quarter: '2026 Q2',
-  tenYear:'', cover:'', eulogy:'', ideal:'', reward:'', season:'',
+  tenYear:'', cover:'', eulogy:'', ideal:'', reward:'', season:'', visionBoardUrl:'',
   goals:[], joys:[], skills:[], interests:[], reviews:[],
   reviewStar: 3
 };
@@ -681,61 +680,56 @@ function renderInterests(){
 }
 
 // ---- Vision Board ----
-document.getElementById('file-inp').addEventListener('change', e=>handleFiles(e.target.files));
-const dz = document.getElementById('drop-zone');
-dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.style.borderColor='var(--amber-border)'; });
-dz.addEventListener('dragleave', ()=>{ dz.style.borderColor=''; });
-dz.addEventListener('drop', e=>{ e.preventDefault(); dz.style.borderColor=''; handleFiles(e.dataTransfer.files); });
+// ---- Vision Board (single photo, Supabase Storage) ----
+document.getElementById('vb-file').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(file) uploadVisionBoard(file);
+  e.target.value='';
+});
 
-function handleFiles(files){
-  Array.from(files).filter(f=>f.type.startsWith('image/')).forEach(f=>{
-    const r = new FileReader();
-    r.onload = e => { vbPhotos.push({id:uid(),src:e.target.result,caption:''}); renderBoard(); };
-    r.readAsDataURL(f);
-  });
-}
-
-function setLayout(n){
-  vbLayout=n;
-  document.querySelectorAll('.layout-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.l)===n));
-  renderBoard();
-}
-
-function renderBoard(){
-  const count = vbPhotos.length;
-  document.getElementById('vb-controls').style.display = count?'flex':'none';
-  document.getElementById('vb-hint').style.display = count?'block':'none';
-  dz.style.display = count>=9?'none':'';
-  const board = document.getElementById('vb-board');
-  const l = Math.max(1, Math.min(vbLayout, count));
-  board.className = 'board layout-'+l;
-  board.innerHTML='';
-  vbPhotos.forEach(p=>{
-    const tile = document.createElement('div');
-    tile.className='tile';
-    tile.innerHTML=`
-      <img src="${p.src}" alt="">
-      <div class="tile-overlay">
-        <button class="tile-rm" onclick="rmPhoto('${p.id}',event)">✕ 移除</button>
-      </div>
-      <div class="tile-caption-wrap">
-        <input class="tile-caption" placeholder="加上文字…" value="${p.caption}"
-          oninput="updateCaption('${p.id}',this.value)">
-      </div>
-    `;
-    board.appendChild(tile);
-  });
-  if(count>0 && count<9){
-    const add=document.createElement('div');
-    add.className='add-tile';
-    add.innerHTML='<span>+</span><p>新增</p>';
-    add.onclick=()=>document.getElementById('file-inp').click();
-    board.appendChild(add);
+async function uploadVisionBoard(file){
+  document.getElementById('vb-empty').style.display='none';
+  document.getElementById('vb-preview').style.display='none';
+  document.getElementById('vb-uploading').style.display='block';
+  try {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `vision.${ext}`;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/vision-board/${path}`, {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': file.type,
+        'x-upsert': 'true'
+      },
+      body: file
+    });
+    if(res.ok){
+      const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/vision-board/${path}?t=${Date.now()}`;
+      state.visionBoardUrl = publicUrl;
+      save();
+      showVisionBoard(publicUrl);
+      showToast('Vision Board 已儲存 ✓');
+    } else {
+      throw new Error('upload failed');
+    }
+  } catch(e){
+    showToast('上傳失敗，請重試', '#d46060');
+    document.getElementById('vb-uploading').style.display='none';
+    document.getElementById('vb-empty').style.display='block';
   }
 }
 
-function rmPhoto(id,e){ e.stopPropagation(); vbPhotos=vbPhotos.filter(p=>p.id!==id); renderBoard(); }
-function updateCaption(id,v){ const p=vbPhotos.find(x=>x.id===id); if(p) p.caption=v; }
+function showVisionBoard(url){
+  document.getElementById('vb-uploading').style.display='none';
+  document.getElementById('vb-empty').style.display='none';
+  document.getElementById('vb-img').src = url;
+  document.getElementById('vb-preview').style.display='block';
+}
+
+function loadVisionBoard(){
+  if(state.visionBoardUrl) showVisionBoard(state.visionBoardUrl);
+}
 
 // ---- Review ----
 function setStar(n){
@@ -809,6 +803,7 @@ function render(){
   renderJoys();
   renderSkills();
   renderInterests();
+  loadVisionBoard();
 }
 
 document.getElementById('new-goal').addEventListener('keydown',e=>{ if(e.key==='Enter') addGoal(); });
