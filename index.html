@@ -384,7 +384,10 @@ input[type=range] { width: 100%; accent-color: var(--amber); margin: 4px 0; }
 <div class="toast" id="toast">已自動儲存 ✓</div>
 
 <script>
-const SKEY = 'life-compass-v3';
+const SUPABASE_URL = 'https://wokkthbtobgbtftkrtuc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indva2t0aGJ0b2JnYnRmdGtydHVjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5MjIwNzAsImV4cCI6MjA5MTQ5ODA3MH0.gKlU0vyXTg41yfEf-CAowfzd1ysXj9w2GBp2c2k4kUM';
+const ROW_ID = 1;
+
 let state = {
   quarter: '2026 Q2',
   tenYear:'', cover:'', eulogy:'', ideal:'', reward:'',
@@ -395,24 +398,60 @@ let saveTimer = null;
 let vbPhotos = [];
 let vbLayout = 2;
 
-function load(){
+function showToast(msg, color){
+  const t = document.getElementById('toast');
+  t.textContent = msg || '已自動儲存 ✓';
+  t.style.background = color || 'var(--green-bg)';
+  t.style.color = color ? '#fff' : 'var(--green)';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2000);
+}
+
+async function load(){
+  document.getElementById('toast').textContent = '載入中…';
+  document.getElementById('toast').classList.add('show');
   try {
-    const raw = localStorage.getItem(SKEY);
-    if(raw) state = {...state, ...JSON.parse(raw)};
-  } catch(e){}
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/compass_data?id=eq.${ROW_ID}`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const rows = await res.json();
+    if(rows && rows.length > 0 && rows[0].data) {
+      state = {...state, ...rows[0].data};
+    }
+  } catch(e){
+    // fallback to localStorage
+    try {
+      const raw = localStorage.getItem('life-compass-v3');
+      if(raw) state = {...state, ...JSON.parse(raw)};
+    } catch(e2){}
+  }
+  document.getElementById('toast').classList.remove('show');
   render();
 }
 
-function save(){
+async function save(){
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(()=>{
+  saveTimer = setTimeout(async()=>{
+    // always save to localStorage as backup
+    try { localStorage.setItem('life-compass-v3', JSON.stringify(state)); } catch(e){}
+    // save to Supabase
     try {
-      localStorage.setItem(SKEY, JSON.stringify(state));
-      const t = document.getElementById('toast');
-      t.classList.add('show');
-      setTimeout(()=>t.classList.remove('show'), 1600);
-    } catch(e){}
-  }, 700);
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/compass_data`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify({ id: ROW_ID, data: state })
+      });
+      if(res.ok) showToast('已同步儲存 ✓');
+      else showToast('儲存失敗，請檢查網路', '#d46060');
+    } catch(e){
+      showToast('離線中，已存本機', '#888');
+    }
+  }, 800);
 }
 
 function uid(){ return Math.random().toString(36).slice(2,7); }
