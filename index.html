@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>人生羅盤</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0e0d;
+  --bg2: #1a1916;
+  --bg3: #242220;
+  --border: rgba(255,255,255,0.08);
+  --border2: rgba(255,255,255,0.14);
+  --text: #f0ede8;
+  --text2: #a09890;
+  --text3: #5a5450;
+  --amber: #d4923a;
+  --amber-bg: rgba(212,146,58,0.12);
+  --amber-border: rgba(212,146,58,0.3);
+  --green: #6aaa7a;
+  --green-bg: rgba(106,170,122,0.12);
+  --red: #d46060;
+  --serif: 'Noto Serif TC', serif;
+  --sans: 'DM Sans', sans-serif;
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; }
+body { display: flex; flex-direction: column; max-width: 520px; margin: 0 auto; min-height: 100vh; }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 2px; }
+
+/* header */
+.topbar {
+  padding: 18px 20px 12px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 0.5px solid var(--border);
+  position: sticky; top: 0; background: var(--bg); z-index: 50;
+}
+.topbar-title { font-family: var(--serif); font-size: 17px; color: var(--text); letter-spacing: .02em; }
+.topbar-q { font-size: 12px; color: var(--amber); font-weight: 500; }
+
+/* nav */
+.nav {
+  display: flex; background: var(--bg);
+  border-top: 0.5px solid var(--border);
+  position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 100%; max-width: 520px; z-index: 50;
+}
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  padding: 10px 4px 12px; gap: 3px; background: transparent; border: none; cursor: pointer;
+}
+.nav-icon { font-size: 19px; line-height: 1; }
+.nav-lbl { font-size: 10px; color: var(--text3); font-family: var(--sans); }
+.nav-btn.active .nav-lbl { color: var(--amber); }
+
+/* main */
+main { flex: 1; padding: 0 0 80px; overflow-y: auto; }
+.page { display: none; }
+.page.active { display: block; }
+
+/* card */
+.card {
+  background: var(--bg2); border: 0.5px solid var(--border);
+  border-radius: var(--radius); padding: 18px; margin: 12px 16px 0;
+}
+.card-label {
+  font-size: 10px; font-weight: 500; color: var(--amber);
+  letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px;
+}
+.card-hint { font-size: 12px; color: var(--text3); line-height: 1.6; margin-bottom: 10px; }
+
+/* inputs */
+textarea, input[type=text], select {
+  width: 100%; background: var(--bg3); border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 12px;
+  font-size: 13px; color: var(--text); font-family: var(--sans);
+  resize: none; outline: none; line-height: 1.6;
+  transition: border-color .2s;
+}
+textarea:focus, input[type=text]:focus, select:focus { border-color: var(--amber-border); }
+textarea::placeholder, input::placeholder { color: var(--text3); }
+select { appearance: none; cursor: pointer; }
+
+/* btn */
+.btn-add {
+  background: var(--amber-bg); color: var(--amber); border: 0.5px solid var(--amber-border);
+  border-radius: var(--radius-sm); padding: 9px 16px; font-size: 13px; font-weight: 500;
+  cursor: pointer; flex-shrink: 0; font-family: var(--sans); transition: background .2s;
+}
+.btn-add:hover { background: rgba(212,146,58,0.2); }
+.btn-primary {
+  width: 100%; background: var(--amber); color: var(--bg); border: none;
+  border-radius: var(--radius-sm); padding: 12px; font-size: 14px; font-weight: 500;
+  cursor: pointer; font-family: var(--sans); margin-top: 12px; transition: opacity .2s;
+}
+.btn-primary:hover { opacity: .85; }
+.row { display: flex; gap: 8px; }
+
+/* progress */
+.pbar-bg { height: 5px; background: var(--bg3); border-radius: 99px; overflow: hidden; margin-top: 6px; }
+.pbar-fill { height: 100%; background: var(--amber); border-radius: 99px; transition: width .4s; }
+input[type=range] { width: 100%; accent-color: var(--amber); margin: 4px 0; }
+
+/* goal item */
+.goal-item { padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+.goal-item:last-child { border-bottom: none; }
+.goal-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.check {
+  width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--border2);
+  flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; transition: all .2s;
+}
+.check.done { background: var(--amber); border-color: var(--amber); color: var(--bg); }
+.goal-text { flex: 1; font-size: 13px; color: var(--text); line-height: 1.4; }
+.goal-text.done { text-decoration: line-through; color: var(--text3); }
+.goal-pct { font-size: 12px; color: var(--amber); min-width: 36px; text-align: right; }
+.rm { font-size: 12px; color: var(--text3); cursor: pointer; padding: 4px; transition: color .2s; }
+.rm:hover { color: var(--red); }
+
+/* stats */
+.stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.stat { background: var(--bg3); border-radius: var(--radius-sm); padding: 14px 8px; text-align: center; }
+.stat-num { font-size: 24px; font-weight: 500; color: var(--amber); font-family: var(--serif); }
+.stat-lbl { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+/* joy */
+.joy-item { display: flex; gap: 10px; padding: 9px 0; border-bottom: 0.5px solid var(--border); align-items: flex-start; }
+.joy-item:last-child { border-bottom: none; }
+.joy-date { font-size: 11px; color: var(--text3); flex-shrink: 0; padding-top: 2px; min-width: 36px; }
+.joy-txt { font-size: 13px; color: var(--text2); flex: 1; line-height: 1.5; }
+
+/* skills */
+.skill-row { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 0.5px solid var(--border); }
+.skill-row:last-child { border-bottom: none; }
+.skill-name-inp { flex: 1; min-width: 0; }
+.stars span { font-size: 15px; cursor: pointer; transition: transform .1s; }
+.stars span:active { transform: scale(1.3); }
+
+/* tags */
+.tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--bg3); border: 0.5px solid var(--border);
+  border-radius: 99px; padding: 5px 12px; font-size: 12px; color: var(--text2); margin: 3px;
+}
+.tag .rm { padding: 0; font-size: 11px; }
+
+/* review */
+.review-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px; margin: 10px 16px 0; }
+.review-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.review-q { font-size: 13px; font-weight: 500; color: var(--amber); }
+.review-date { font-size: 11px; color: var(--text3); }
+.review-body { font-size: 13px; color: var(--text2); line-height: 1.7; white-space: pre-wrap; }
+
+/* vision board */
+.upload-zone {
+  border: 1.5px dashed var(--border2); border-radius: var(--radius);
+  padding: 32px 16px; text-align: center; cursor: pointer; margin: 12px 16px 0;
+  transition: border-color .2s; background: var(--bg2);
+}
+.upload-zone:hover { border-color: var(--amber-border); }
+.upload-zone .uz-icon { font-size: 32px; margin-bottom: 8px; }
+.upload-zone p { font-size: 13px; color: var(--text3); }
+.upload-zone p.sm { font-size: 11px; margin-top: 4px; }
+.vb-controls { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 16px 0; }
+.layout-btn {
+  background: var(--bg3); border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm); padding: 6px 12px; font-size: 12px; color: var(--text2);
+  cursor: pointer; font-family: var(--sans); transition: all .2s;
+}
+.layout-btn.active { border-color: var(--amber-border); color: var(--amber); background: var(--amber-bg); }
+.board { display: grid; gap: 5px; margin: 10px 16px 0; }
+.layout-1 { grid-template-columns: 1fr; }
+.layout-2 { grid-template-columns: 1fr 1fr; }
+.layout-3 { grid-template-columns: 2fr 1fr; grid-template-rows: auto auto; }
+.layout-3 .tile:first-child { grid-row: 1 / 3; }
+.layout-4 { grid-template-columns: 1fr 1fr; }
+.layout-5 { grid-template-columns: 1fr 1fr 1fr; grid-template-rows: auto auto; }
+.layout-5 .tile:first-child { grid-column: 1 / 3; }
+.layout-6 { grid-template-columns: 1fr 1fr 1fr; }
+.tile { position: relative; overflow: hidden; border-radius: 8px; min-height: 110px; background: var(--bg3); }
+.tile img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+.tile:hover img { transform: scale(1.04); }
+.tile .tile-overlay { position: absolute; inset: 0; background: transparent; transition: background .2s; display: flex; align-items: flex-start; justify-content: flex-end; padding: 8px; }
+.tile:hover .tile-overlay { background: rgba(0,0,0,.2); }
+.tile .tile-rm { opacity: 0; background: rgba(0,0,0,.65); color: #fff; border: none; border-radius: 99px; padding: 4px 10px; font-size: 11px; cursor: pointer; transition: opacity .2s; }
+.tile:hover .tile-rm { opacity: 1; }
+.tile .tile-caption-wrap { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px 10px 8px; background: linear-gradient(transparent, rgba(0,0,0,.5)); }
+.tile .tile-caption { font-size: 11px; color: rgba(255,255,255,.85); background: transparent; border: none; outline: none; width: 100%; font-family: var(--sans); }
+.tile .tile-caption::placeholder { color: rgba(255,255,255,.4); }
+.add-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; min-height: 110px; border-radius: 8px; background: var(--bg3); border: 1px dashed var(--border2); transition: border-color .2s; }
+.add-tile:hover { border-color: var(--amber-border); }
+.add-tile span { font-size: 22px; color: var(--text3); }
+.add-tile p { font-size: 11px; color: var(--text3); }
+.vb-hint { font-size: 11px; color: var(--text3); text-align: center; padding: 10px; }
+
+/* compass check */
+.compass-item { display: flex; gap: 10px; }
+.compass-icon { font-size: 16px; flex-shrink: 0; padding-top: 1px; }
+.compass-lbl { font-size: 11px; color: var(--text3); margin-bottom: 3px; }
+.compass-val { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.compass-empty { font-size: 13px; color: var(--text3); font-style: italic; }
+
+/* star rating */
+.star-row { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }
+.star-row label { font-size: 12px; color: var(--text3); }
+.star { font-size: 20px; cursor: pointer; transition: transform .1s; }
+.star:active { transform: scale(1.3); }
+
+/* toast */
+.toast {
+  position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+  background: var(--green-bg); color: var(--green); border: 0.5px solid rgba(106,170,122,.3);
+  font-size: 12px; padding: 6px 18px; border-radius: 99px;
+  opacity: 0; transition: opacity .3s; pointer-events: none; white-space: nowrap; z-index: 100;
+}
+.toast.show { opacity: 1; }
+
+/* empty state */
+.empty { text-align: center; padding: 24px 0; font-size: 13px; color: var(--text3); }
+
+/* section spacer */
+.section-top { padding: 16px 16px 0; font-family: var(--serif); font-size: 13px; color: var(--text3); letter-spacing: .05em; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-title">人生羅盤 🧭</span>
+  <span class="topbar-q" id="cur-q">2026 Q2</span>
+</div>
+
+<main id="main">
+
+  <!-- PAGE: VISION -->
+  <div class="page active" id="pg-vision">
+    <div class="card" style="margin-top:16px">
+      <div class="card-label">十年願景</div>
+      <div class="card-hint">十年後，你的生活是什麼樣子？工作、生活、關係……</div>
+      <textarea id="v-ten" rows="4" placeholder="自由書寫，沒有對錯"></textarea>
+    </div>
+    <div class="card">
+      <div class="card-label">兩年封面故事</div>
+      <div class="card-hint">假設兩年後登上雜誌封面，記者怎麼描述你？</div>
+      <textarea id="v-cover" rows="4" placeholder="「兩年後的我，達成了……」"></textarea>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-label">想成為怎樣的人</div>
+      <div class="card-hint">不是「做什麼」，而是「成為什麼」——特質、習慣、狀態</div>
+      <textarea id="v-ideal" rows="3" placeholder="特質、每天的感受、想擁有的能量……"></textarea>
+    </div>
+  </div>
+
+  <!-- PAGE: ACTION -->
+  <div class="page" id="pg-action">
+    <div class="card" style="margin-top:16px">
+      <div class="card-label">當前季度</div>
+      <select id="q-sel">
+        <option>2026 Q1</option><option selected>2026 Q2</option>
+        <option>2026 Q3</option><option>2026 Q4</option>
+        <option>2027 Q1</option><option>2027 Q2</option>
+        <option>2027 Q3</option><option>2027 Q4</option>
+      </select>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div class="card-label" style="margin:0">整體進度</div>
+        <span id="total-pct" style="font-size:17px;font-weight:500;color:var(--amber);font-family:var(--serif)">0%</span>
+      </div>
+      <div class="pbar-bg"><div class="pbar-fill" id="total-bar" style="width:0%"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-label">這季目標</div>
+      <div id="goals-list"></div>
+      <div class="row" style="margin-top:12px">
+        <input type="text" id="new-goal" placeholder="新增目標，按 Enter 確認">
+        <button class="btn-add" onclick="addGoal()">+</button>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-label">🎁 達成獎勵</div>
+      <div class="card-hint">完成這季所有目標，要送給自己什麼？</div>
+      <input type="text" id="v-reward" placeholder="一趟旅行、一雙球鞋……">
+    </div>
+  </div>
+
+  <!-- PAGE: GROWTH -->
+  <div class="page" id="pg-growth">
+    <div class="card" style="margin-top:16px">
+      <div class="card-label">每週一件開心的事</div>
+      <div class="row" style="margin-bottom:12px">
+        <input type="text" id="new-joy" placeholder="這週讓我開心的是……">
+        <button class="btn-add" onclick="addJoy()">+</button>
+      </div>
+      <div id="joys-list" style="max-height:220px;overflow-y:auto"></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="card-label" style="margin:0">專長能力表</div>
+        <button class="btn-add" onclick="addSkill()" style="padding:6px 12px;font-size:12px">+ 新增</button>
+      </div>
+      <div id="skills-list"></div>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-label">興趣愛好</div>
+      <div class="row" style="margin-bottom:10px">
+        <input type="text" id="new-int" placeholder="新增興趣……">
+        <button class="btn-add" onclick="addInterest()">+</button>
+      </div>
+      <div id="interests-list"></div>
+    </div>
+  </div>
+
+  <!-- PAGE: VISION BOARD -->
+  <div class="page" id="pg-board">
+    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-inp').click()" style="margin-top:16px">
+      <div class="uz-icon">🖼️</div>
+      <p>點擊上傳 或 拖曳照片到這裡</p>
+      <p class="sm">支援多選 · JPG / PNG / WEBP</p>
+    </div>
+    <input type="file" id="file-inp" multiple accept="image/*" style="display:none">
+    <div class="vb-controls" id="vb-controls" style="display:none">
+      <span style="font-size:12px;color:var(--text3);width:100%;padding-top:4px">版面排列</span>
+      <button class="layout-btn active" data-l="1" onclick="setLayout(1)">單欄</button>
+      <button class="layout-btn" data-l="2" onclick="setLayout(2)">兩欄</button>
+      <button class="layout-btn" data-l="3" onclick="setLayout(3)">雜誌</button>
+      <button class="layout-btn" data-l="4" onclick="setLayout(4)">四宮格</button>
+      <button class="layout-btn" data-l="5" onclick="setLayout(5)">五格</button>
+      <button class="layout-btn" data-l="6" onclick="setLayout(6)">六格</button>
+    </div>
+    <div class="board layout-2" id="vb-board"></div>
+    <p class="vb-hint" id="vb-hint" style="display:none">點圖片下方可加說明文字 · 注意：照片重新整理後會消失，記得截圖保存 📸</p>
+  </div>
+
+  <!-- PAGE: REVIEW -->
+  <div class="page" id="pg-review">
+    <div class="card" style="margin-top:16px">
+      <div class="card-label" id="snap-title">2026 Q2 快照</div>
+      <div class="stat-grid">
+        <div class="stat"><div class="stat-num" id="snap-pct">0%</div><div class="stat-lbl">整體進度</div></div>
+        <div class="stat"><div class="stat-num" id="snap-done">0</div><div class="stat-lbl">完成目標</div></div>
+        <div class="stat"><div class="stat-num" id="snap-joys">0</div><div class="stat-lbl">開心時刻</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">對照北極星</div>
+      <div id="compass-check" style="display:flex;flex-direction:column;gap:14px"></div>
+      <p style="margin-top:14px;font-size:12px;color:var(--text3);border-top:0.5px solid var(--border);padding-top:12px">
+        💡 這季的行動，有讓你往以上方向靠近嗎？
+      </p>
+    </div>
+    <div class="card">
+      <div class="card-label">寫這季復盤</div>
+      <div class="star-row">
+        <label>這季評分</label>
+        <span class="star" data-v="1" onclick="setStar(1)">☆</span>
+        <span class="star" data-v="2" onclick="setStar(2)">☆</span>
+        <span class="star" data-v="3" onclick="setStar(3)">☆</span>
+        <span class="star" data-v="4" onclick="setStar(4)">☆</span>
+        <span class="star" data-v="5" onclick="setStar(5)">☆</span>
+      </div>
+      <textarea id="review-text" rows="6" placeholder="最大的收穫是……&#10;做得好的地方……&#10;下季要調整的是……&#10;有往願景方向靠近嗎？"></textarea>
+      <button class="btn-primary" onclick="saveReview()">儲存復盤</button>
+    </div>
+    <div id="reviews-list" style="padding-bottom:16px"></div>
+  </div>
+
+</main>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="goPage('vision',this)"><span class="nav-icon">🔭</span><span class="nav-lbl">未來展望</span></button>
+  <button class="nav-btn" onclick="goPage('action',this)"><span class="nav-icon">⚡</span><span class="nav-lbl">當季行動</span></button>
+  <button class="nav-btn" onclick="goPage('growth',this)"><span class="nav-icon">🌱</span><span class="nav-lbl">成長記錄</span></button>
+  <button class="nav-btn" onclick="goPage('board',this)"><span class="nav-icon">🎨</span><span class="nav-lbl">Vision Board</span></button>
+  <button class="nav-btn" onclick="goPage('review',this)"><span class="nav-icon">🔄</span><span class="nav-lbl">復盤</span></button>
+</nav>
+
+<div class="toast" id="toast">已自動儲存 ✓</div>
+
+<script>
+const SKEY = 'life-compass-v3';
+let state = {
+  quarter: '2026 Q2',
+  tenYear:'', cover:'', eulogy:'', ideal:'', reward:'',
+  goals:[], joys:[], skills:[], interests:[], reviews:[],
+  reviewStar: 3
+};
+let saveTimer = null;
+let vbPhotos = [];
+let vbLayout = 2;
+
+function load(){
+  try {
+    const raw = localStorage.getItem(SKEY);
+    if(raw) state = {...state, ...JSON.parse(raw)};
+  } catch(e){}
+  render();
+}
+
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    try {
+      localStorage.setItem(SKEY, JSON.stringify(state));
+      const t = document.getElementById('toast');
+      t.classList.add('show');
+      setTimeout(()=>t.classList.remove('show'), 1600);
+    } catch(e){}
+  }, 700);
+}
+
+function uid(){ return Math.random().toString(36).slice(2,7); }
+function today(){ return new Date().toLocaleDateString('zh-TW',{month:'short',day:'numeric'}); }
+
+function goPage(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pg-'+id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(id==='review') renderReview();
+}
+
+// ---- Vision ----
+function bindVision(){
+  const fields = [
+    ['v-ten','tenYear'],['v-cover','cover'],
+    ['v-ideal','ideal'],['v-reward','reward']
+  ];
+  fields.forEach(([id,key])=>{
+    const el = document.getElementById(id);
+    if(!el) return;
+    el.value = state[key]||'';
+    el.addEventListener('input', ()=>{ state[key]=el.value; save(); });
+  });
+  const qs = document.getElementById('q-sel');
+  qs.value = state.quarter;
+  qs.addEventListener('change', ()=>{
+    state.quarter = qs.value;
+    document.getElementById('cur-q').textContent = state.quarter;
+    save();
+  });
+}
+
+// ---- Goals ----
+function addGoal(){
+  const inp = document.getElementById('new-goal');
+  if(!inp.value.trim()) return;
+  state.goals.push({id:uid(), text:inp.value.trim(), pct:0, done:false});
+  inp.value=''; save(); renderGoals();
+}
+
+function toggleGoal(id){
+  const g = state.goals.find(x=>x.id===id);
+  if(g){ g.done=!g.done; if(g.done) g.pct=100; save(); renderGoals(); }
+}
+
+function updateGoalPct(id,v){
+  const g = state.goals.find(x=>x.id===id);
+  if(g){ g.pct=parseInt(v); save(); renderGoals(); }
+}
+
+function rmGoal(id){
+  state.goals = state.goals.filter(x=>x.id!==id);
+  save(); renderGoals();
+}
+
+function renderGoals(){
+  const el = document.getElementById('goals-list');
+  if(!state.goals.length){
+    el.innerHTML='<div class="empty">還沒有目標，加第一個吧！</div>';
+    updateProgress(); return;
+  }
+  el.innerHTML = state.goals.map(g=>`
+    <div class="goal-item">
+      <div class="goal-top">
+        <div class="check ${g.done?'done':''}" onclick="toggleGoal('${g.id}')">${g.done?'✓':''}</div>
+        <span class="goal-text ${g.done?'done':''}">${g.text}</span>
+        <span class="goal-pct">${Math.round(g.pct)}%</span>
+        <span class="rm" onclick="rmGoal('${g.id}')">✕</span>
+      </div>
+      <input type="range" min="0" max="100" step="5" value="${g.pct}"
+        oninput="updateGoalPct('${g.id}',this.value)">
+    </div>
+  `).join('');
+  updateProgress();
+}
+
+function updateProgress(){
+  const pct = state.goals.length
+    ? Math.round(state.goals.reduce((s,g)=>s+g.pct,0)/state.goals.length) : 0;
+  document.getElementById('total-pct').textContent = pct+'%';
+  document.getElementById('total-bar').style.width = pct+'%';
+}
+
+// ---- Joys ----
+function addJoy(){
+  const inp = document.getElementById('new-joy');
+  if(!inp.value.trim()) return;
+  state.joys.unshift({id:uid(), text:inp.value.trim(), date:today()});
+  state.joys = state.joys.slice(0,52);
+  inp.value=''; save(); renderJoys();
+}
+
+function rmJoy(id){ state.joys=state.joys.filter(x=>x.id!==id); save(); renderJoys(); }
+
+function renderJoys(){
+  const el = document.getElementById('joys-list');
+  if(!state.joys.length){ el.innerHTML='<div class="empty">還沒有記錄</div>'; return; }
+  el.innerHTML = state.joys.map(j=>`
+    <div class="joy-item">
+      <span class="joy-date">${j.date}</span>
+      <span class="joy-txt">${j.text}</span>
+      <span class="rm" onclick="rmJoy('${j.id}')">✕</span>
+    </div>
+  `).join('');
+}
+
+// ---- Skills ----
+function addSkill(){ state.skills.push({id:uid(),name:'',level:3}); save(); renderSkills(); }
+function rmSkill(id){ state.skills=state.skills.filter(x=>x.id!==id); save(); renderSkills(); }
+function updateSkillName(id,v){ const s=state.skills.find(x=>x.id===id); if(s){s.name=v;save();} }
+function setSkillLevel(id,v){ const s=state.skills.find(x=>x.id===id); if(s){s.level=v;save();renderSkills();} }
+
+function renderSkills(){
+  const el = document.getElementById('skills-list');
+  if(!state.skills.length){ el.innerHTML='<div class="empty">還沒有技能</div>'; return; }
+  el.innerHTML = state.skills.map(s=>`
+    <div class="skill-row">
+      <input type="text" class="skill-name-inp" value="${s.name}" placeholder="技能名稱…"
+        oninput="updateSkillName('${s.id}',this.value)">
+      <div class="stars">${[1,2,3,4,5].map(n=>`
+        <span onclick="setSkillLevel('${s.id}',${n})"
+          style="color:${n<=s.level?'var(--amber)':'var(--text3)'}">${n<=s.level?'★':'☆'}</span>
+      `).join('')}</div>
+      <span class="rm" onclick="rmSkill('${s.id}')">✕</span>
+    </div>
+  `).join('');
+}
+
+// ---- Interests ----
+function addInterest(){
+  const inp = document.getElementById('new-int');
+  if(!inp.value.trim()) return;
+  state.interests.push({id:uid(),name:inp.value.trim()});
+  inp.value=''; save(); renderInterests();
+}
+function rmInt(id){ state.interests=state.interests.filter(x=>x.id!==id); save(); renderInterests(); }
+function renderInterests(){
+  const el = document.getElementById('interests-list');
+  if(!state.interests.length){ el.innerHTML='<div class="empty">還沒有興趣標籤</div>'; return; }
+  el.innerHTML = state.interests.map(i=>`
+    <span class="tag">${i.name}<span class="rm" onclick="rmInt('${i.id}')">✕</span></span>
+  `).join('');
+}
+
+// ---- Vision Board ----
+document.getElementById('file-inp').addEventListener('change', e=>handleFiles(e.target.files));
+const dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', e=>{ e.preventDefault(); dz.style.borderColor='var(--amber-border)'; });
+dz.addEventListener('dragleave', ()=>{ dz.style.borderColor=''; });
+dz.addEventListener('drop', e=>{ e.preventDefault(); dz.style.borderColor=''; handleFiles(e.dataTransfer.files); });
+
+function handleFiles(files){
+  Array.from(files).filter(f=>f.type.startsWith('image/')).forEach(f=>{
+    const r = new FileReader();
+    r.onload = e => { vbPhotos.push({id:uid(),src:e.target.result,caption:''}); renderBoard(); };
+    r.readAsDataURL(f);
+  });
+}
+
+function setLayout(n){
+  vbLayout=n;
+  document.querySelectorAll('.layout-btn').forEach(b=>b.classList.toggle('active',parseInt(b.dataset.l)===n));
+  renderBoard();
+}
+
+function renderBoard(){
+  const count = vbPhotos.length;
+  document.getElementById('vb-controls').style.display = count?'flex':'none';
+  document.getElementById('vb-hint').style.display = count?'block':'none';
+  dz.style.display = count>=9?'none':'';
+  const board = document.getElementById('vb-board');
+  const l = Math.max(1, Math.min(vbLayout, count));
+  board.className = 'board layout-'+l;
+  board.innerHTML='';
+  vbPhotos.forEach(p=>{
+    const tile = document.createElement('div');
+    tile.className='tile';
+    tile.innerHTML=`
+      <img src="${p.src}" alt="">
+      <div class="tile-overlay">
+        <button class="tile-rm" onclick="rmPhoto('${p.id}',event)">✕ 移除</button>
+      </div>
+      <div class="tile-caption-wrap">
+        <input class="tile-caption" placeholder="加上文字…" value="${p.caption}"
+          oninput="updateCaption('${p.id}',this.value)">
+      </div>
+    `;
+    board.appendChild(tile);
+  });
+  if(count>0 && count<9){
+    const add=document.createElement('div');
+    add.className='add-tile';
+    add.innerHTML='<span>+</span><p>新增</p>';
+    add.onclick=()=>document.getElementById('file-inp').click();
+    board.appendChild(add);
+  }
+}
+
+function rmPhoto(id,e){ e.stopPropagation(); vbPhotos=vbPhotos.filter(p=>p.id!==id); renderBoard(); }
+function updateCaption(id,v){ const p=vbPhotos.find(x=>x.id===id); if(p) p.caption=v; }
+
+// ---- Review ----
+function setStar(n){
+  state.reviewStar=n;
+  document.querySelectorAll('.star').forEach(s=>{
+    const v=parseInt(s.dataset.v);
+    s.textContent = v<=n?'★':'☆';
+    s.style.color = v<=n?'var(--amber)':'var(--text3)';
+  });
+}
+
+function saveReview(){
+  const txt=document.getElementById('review-text').value.trim();
+  if(!txt) return;
+  state.reviews.unshift({id:uid(),quarter:state.quarter,text:txt,star:state.reviewStar||3,date:today()});
+  document.getElementById('review-text').value='';
+  setStar(3); save(); renderReviewsList();
+}
+
+function renderReview(){
+  const pct = state.goals.length
+    ? Math.round(state.goals.reduce((s,g)=>s+g.pct,0)/state.goals.length) : 0;
+  document.getElementById('snap-pct').textContent=pct+'%';
+  document.getElementById('snap-done').textContent=state.goals.filter(g=>g.done).length;
+  document.getElementById('snap-joys').textContent=state.joys.length;
+  document.getElementById('snap-title').textContent=state.quarter+' 快照';
+  const cc=document.getElementById('compass-check');
+  const items=[
+    {icon:'🔭',lbl:'十年願景',val:state.tenYear},
+    {icon:'📰',lbl:'兩年封面故事',val:state.cover},
+    {icon:'✨',lbl:'想成為的人',val:state.ideal},
+  ];
+  cc.innerHTML=items.map(i=>`
+    <div class="compass-item">
+      <span class="compass-icon">${i.icon}</span>
+      <div>
+        <div class="compass-lbl">${i.lbl}</div>
+        ${i.val
+          ? `<div class="compass-val">${i.val.slice(0,80)}${i.val.length>80?'…':''}</div>`
+          : `<div class="compass-empty">尚未填寫</div>`}
+      </div>
+    </div>
+  `).join('');
+  setStar(state.reviewStar||3);
+  renderReviewsList();
+}
+
+function renderReviewsList(){
+  const el=document.getElementById('reviews-list');
+  if(!state.reviews.length){
+    el.innerHTML='<div class="empty" style="padding:20px">還沒有復盤記錄</div>'; return;
+  }
+  el.innerHTML=state.reviews.map(r=>`
+    <div class="review-card">
+      <div class="review-meta">
+        <span class="review-q">${r.quarter}</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:13px;color:var(--amber)">${'★'.repeat(r.star||3)}</span>
+          <span class="review-date">${r.date}</span>
+        </div>
+      </div>
+      <p class="review-body">${r.text}</p>
+    </div>
+  `).join('');
+}
+
+// ---- Init ----
+function render(){
+  bindVision();
+  renderGoals();
+  renderJoys();
+  renderSkills();
+  renderInterests();
+}
+
+document.getElementById('new-goal').addEventListener('keydown',e=>{ if(e.key==='Enter') addGoal(); });
+document.getElementById('new-joy').addEventListener('keydown',e=>{ if(e.key==='Enter') addJoy(); });
+document.getElementById('new-int').addEventListener('keydown',e=>{ if(e.key==='Enter') addInterest(); });
+
+load();
+</script>
+</body>
+</html>
