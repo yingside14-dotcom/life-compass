@@ -300,9 +300,17 @@ input[type=range] { width: 100%; accent-color: var(--amber); margin: 4px 0; }
     <div class="card">
       <div class="card-label">這季目標</div>
       <div id="goals-list"></div>
-      <div class="row" style="margin-top:12px">
-        <input type="text" id="new-goal" placeholder="新增目標，按 Enter 確認">
-        <button class="btn-add" onclick="addGoal()">+</button>
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+        <div class="row">
+          <input type="text" id="new-goal" placeholder="目標名稱，按 Enter 確認" style="flex:1">
+          <button class="btn-add" onclick="addGoal()">+</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px;color:var(--text3);flex-shrink:0">總數量</span>
+          <input type="number" id="new-goal-total" value="1" min="1" max="100"
+            style="width:70px;text-align:center;padding:6px 8px;font-size:13px">
+          <span style="font-size:12px;color:var(--text3)">次 / 個 / 本…（設 1 = 單一勾選）</span>
+        </div>
       </div>
     </div>
     <div class="card" style="margin-bottom:16px">
@@ -489,9 +497,31 @@ function bindVision(){
 // ---- Goals ----
 function addGoal(){
   const inp = document.getElementById('new-goal');
+  const totalInp = document.getElementById('new-goal-total');
   if(!inp.value.trim()) return;
-  state.goals.push({id:uid(), text:inp.value.trim(), pct:0, done:false});
-  inp.value=''; save(); renderGoals();
+  const total = Math.max(1, parseInt(totalInp.value)||1);
+  state.goals.push({id:uid(), text:inp.value.trim(), total:total, count:0, pct:0, done:false});
+  inp.value=''; totalInp.value='1'; save(); renderGoals();
+}
+
+function toggleSingle(id){
+  const g = state.goals.find(x=>x.id===id);
+  if(!g) return;
+  const total = g.total || 1;
+  g.count = (g.count||0) >= total ? 0 : total;
+  g.pct = Math.round((g.count/total)*100);
+  g.done = g.count >= total;
+  save(); renderGoals();
+}
+
+function stepGoal(id, delta){
+  const g = state.goals.find(x=>x.id===id);
+  if(!g) return;
+  const total = g.total || 1;
+  g.count = Math.max(0, Math.min(total, (g.count||0) + delta));
+  g.pct = Math.round((g.count/total)*100);
+  g.done = g.count >= total;
+  save(); renderGoals();
 }
 
 function toggleGoal(id){
@@ -515,24 +545,52 @@ function renderGoals(){
     el.innerHTML='<div class="empty">還沒有目標，加第一個吧！</div>';
     updateProgress(); return;
   }
-  el.innerHTML = state.goals.map(g=>`
-    <div class="goal-item">
-      <div class="goal-top">
-        <div class="check ${g.done?'done':''}" onclick="toggleGoal('${g.id}')">${g.done?'✓':''}</div>
-        <span class="goal-text ${g.done?'done':''}">${g.text}</span>
-        <span class="goal-pct">${Math.round(g.pct)}%</span>
-        <span class="rm" onclick="rmGoal('${g.id}')">✕</span>
-      </div>
-      <input type="range" min="0" max="100" step="5" value="${g.pct}"
-        oninput="updateGoalPct('${g.id}',this.value)">
-    </div>
-  `).join('');
+  el.innerHTML = state.goals.map(g=>{
+    const total = g.total || 1;
+    const count = g.count || 0;
+    const pct = Math.round((count / total) * 100);
+    const done = count >= total;
+    if(total === 1){
+      return `
+        <div class="goal-item">
+          <div class="goal-top">
+            <div class="check ${done?'done':''}" onclick="toggleSingle('${g.id}')">${done?'✓':''}</div>
+            <span class="goal-text ${done?'done':''}">${g.text}</span>
+            <span class="goal-pct">${pct}%</span>
+            <span class="rm" onclick="rmGoal('${g.id}')">✕</span>
+          </div>
+          <div class="pbar-bg"><div class="pbar-fill" style="width:${pct}%"></div></div>
+        </div>`;
+    } else {
+      return `
+        <div class="goal-item">
+          <div class="goal-top">
+            <span class="goal-text ${done?'done':''}">${g.text}</span>
+            <span class="rm" onclick="rmGoal('${g.id}')">✕</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:6px">
+            <button onclick="stepGoal('${g.id}',-1)"
+              style="width:28px;height:28px;border-radius:50%;background:var(--bg3);border:0.5px solid var(--border2);color:var(--text2);font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">−</button>
+            <div style="flex:1">
+              <div class="pbar-bg"><div class="pbar-fill" style="width:${pct}%"></div></div>
+            </div>
+            <span style="font-size:13px;color:var(--amber);min-width:42px;text-align:right;font-weight:500">${count}/${total}</span>
+            <button onclick="stepGoal('${g.id}',1)"
+              style="width:28px;height:28px;border-radius:50%;background:${done?'var(--amber)':'var(--bg3)'};border:0.5px solid var(--border2);color:${done?'var(--bg)':'var(--text2)'};font-size:16px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">+</button>
+          </div>
+        </div>`;
+    }
+  }).join('');
   updateProgress();
 }
 
 function updateProgress(){
   const pct = state.goals.length
-    ? Math.round(state.goals.reduce((s,g)=>s+g.pct,0)/state.goals.length) : 0;
+    ? Math.round(state.goals.reduce((s,g)=>{
+        const total = g.total||1;
+        const count = g.count||0;
+        return s + Math.round((count/total)*100);
+      },0)/state.goals.length) : 0;
   document.getElementById('total-pct').textContent = pct+'%';
   document.getElementById('total-bar').style.width = pct+'%';
 }
