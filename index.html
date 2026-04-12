@@ -267,7 +267,7 @@ input[type=range] { width: 100%; accent-color: var(--amber); margin: 4px 0; }
         <p class="sm">JPG / PNG / WEBP · 自動儲存到雲端</p>
       </div>
       <div id="vb-preview" style="display:none;position:relative;border-radius:10px;overflow:hidden">
-        <img id="vb-img" src="" style="width:100%;display:block;border-radius:10px;max-height:320px;object-fit:cover">
+        <img id="vb-img" src="" style="width:100%;display:block;border-radius:10px;object-fit:contain">
         <button onclick="document.getElementById('vb-file').click()"
           style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,0.6);color:#fff;border:none;border-radius:99px;padding:6px 14px;font-size:12px;cursor:pointer;font-family:var(--sans)">
           更換照片
@@ -295,6 +295,11 @@ input[type=range] { width: 100%; accent-color: var(--amber); margin: 4px 0; }
       <div class="card-label">當季期盼</div>
       <div class="card-hint">這一季，我想往哪個方向前進？</div>
       <textarea id="v-season" rows="2" placeholder="例如：打穩工作根基，同時找回創作的節奏"></textarea>
+    </div>
+    <div class="card">
+      <div class="card-label">小提醒</div>
+      <div class="card-hint">寫下幾句提點自己的話，隨時回來看看 ✨</div>
+      <textarea id="v-reminder" rows="3" placeholder="例如：慢慢來比較快。完成比完美重要。"></textarea>
     </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -404,7 +409,7 @@ const ROW_ID = 1;
 
 let state = {
   quarter: '2026 Q2',
-  tenYear:'', cover:'', eulogy:'', ideal:'', reward:'', season:'', visionBoardUrl:'',
+  tenYear:'', cover:'', eulogy:'', ideal:'', reward:'', season:'', visionBoardUrl:'', reminder:'',
   goals:[], joys:[], skills:[], interests:[], reviews:[],
   reviewStar: 3
 };
@@ -483,7 +488,7 @@ function goPage(id, btn){
 function bindVision(){
   const fields = [
     ['v-ten','tenYear'],['v-cover','cover'],
-    ['v-ideal','ideal'],['v-reward','reward'],['v-season','season']
+    ['v-ideal','ideal'],['v-reward','reward'],['v-season','season'],['v-reminder','reminder']
   ];
   fields.forEach(([id,key])=>{
     const el = document.getElementById(id);
