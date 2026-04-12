@@ -251,10 +251,31 @@ input[type=range] { width: 100%; accent-color: var(--amber); margin: 4px 0; }
       <div class="card-hint">假設兩年後登上雜誌封面，記者怎麼描述你？</div>
       <textarea id="v-cover" rows="4" placeholder="「兩年後的我，達成了……」"></textarea>
     </div>
-    <div class="card" style="margin-bottom:16px">
+    <div class="card">
       <div class="card-label">想成為怎樣的人</div>
       <div class="card-hint">不是「做什麼」，而是「成為什麼」——特質、習慣、狀態</div>
       <textarea id="v-ideal" rows="3" placeholder="特質、每天的感受、想擁有的能量……"></textarea>
+    </div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-label">🎨 Vision Board</div>
+      <div class="card-hint">上傳照片，拼出你夢想中的生活樣貌</div>
+      <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-inp').click()" style="margin:0 0 10px">
+        <div class="uz-icon">🖼️</div>
+        <p>點擊上傳 或 拖曳照片</p>
+        <p class="sm">支援多選 · JPG / PNG / WEBP</p>
+      </div>
+      <input type="file" id="file-inp" multiple accept="image/*" style="display:none">
+      <div class="vb-controls" id="vb-controls" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+        <span style="font-size:11px;color:var(--text3);width:100%">版面排列</span>
+        <button class="layout-btn active" data-l="1" onclick="setLayout(1)">單欄</button>
+        <button class="layout-btn" data-l="2" onclick="setLayout(2)">兩欄</button>
+        <button class="layout-btn" data-l="3" onclick="setLayout(3)">雜誌</button>
+        <button class="layout-btn" data-l="4" onclick="setLayout(4)">四宮格</button>
+        <button class="layout-btn" data-l="5" onclick="setLayout(5)">五格</button>
+        <button class="layout-btn" data-l="6" onclick="setLayout(6)">六格</button>
+      </div>
+      <div class="board layout-2" id="vb-board"></div>
+      <p class="vb-hint" id="vb-hint" style="display:none;margin-top:8px">點圖片下方可加說明文字 · 注意：照片重新整理後會消失，記得截圖保存 📸</p>
     </div>
   </div>
 
@@ -318,27 +339,6 @@ input[type=range] { width: 100%; accent-color: var(--amber); margin: 4px 0; }
     </div>
   </div>
 
-  <!-- PAGE: VISION BOARD -->
-  <div class="page" id="pg-board">
-    <div class="upload-zone" id="drop-zone" onclick="document.getElementById('file-inp').click()" style="margin-top:16px">
-      <div class="uz-icon">🖼️</div>
-      <p>點擊上傳 或 拖曳照片到這裡</p>
-      <p class="sm">支援多選 · JPG / PNG / WEBP</p>
-    </div>
-    <input type="file" id="file-inp" multiple accept="image/*" style="display:none">
-    <div class="vb-controls" id="vb-controls" style="display:none">
-      <span style="font-size:12px;color:var(--text3);width:100%;padding-top:4px">版面排列</span>
-      <button class="layout-btn active" data-l="1" onclick="setLayout(1)">單欄</button>
-      <button class="layout-btn" data-l="2" onclick="setLayout(2)">兩欄</button>
-      <button class="layout-btn" data-l="3" onclick="setLayout(3)">雜誌</button>
-      <button class="layout-btn" data-l="4" onclick="setLayout(4)">四宮格</button>
-      <button class="layout-btn" data-l="5" onclick="setLayout(5)">五格</button>
-      <button class="layout-btn" data-l="6" onclick="setLayout(6)">六格</button>
-    </div>
-    <div class="board layout-2" id="vb-board"></div>
-    <p class="vb-hint" id="vb-hint" style="display:none">點圖片下方可加說明文字 · 注意：照片重新整理後會消失，記得截圖保存 📸</p>
-  </div>
-
   <!-- PAGE: REVIEW -->
   <div class="page" id="pg-review">
     <div class="card" style="margin-top:16px">
@@ -378,7 +378,6 @@ input[type=range] { width: 100%; accent-color: var(--amber); margin: 4px 0; }
   <button class="nav-btn active" onclick="goPage('vision',this)"><span class="nav-icon">🔭</span><span class="nav-lbl">未來展望</span></button>
   <button class="nav-btn" onclick="goPage('action',this)"><span class="nav-icon">⚡</span><span class="nav-lbl">當季行動</span></button>
   <button class="nav-btn" onclick="goPage('growth',this)"><span class="nav-icon">🌱</span><span class="nav-lbl">成長記錄</span></button>
-  <button class="nav-btn" onclick="goPage('board',this)"><span class="nav-icon">🎨</span><span class="nav-lbl">Vision Board</span></button>
   <button class="nav-btn" onclick="goPage('review',this)"><span class="nav-icon">🔄</span><span class="nav-lbl">復盤</span></button>
 </nav>
 
