@@ -418,6 +418,28 @@ input[type=range] { width: 100%; accent-color: var(--amber); margin: 4px 0; }
   </div>
   <input type="file" id="bingo-file" accept="image/*" style="display:none">
 
+  <!-- Bingo action sheet -->
+  <div id="bingo-action-sheet" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.6);align-items:flex-end;justify-content:center">
+    <div style="background:var(--bg2);border-radius:16px 16px 0 0;padding:16px;width:100%;max-width:520px">
+      <div id="bingo-action-label" style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:14px;padding-bottom:12px;border-bottom:0.5px solid var(--border)"></div>
+      <button id="bingo-action-done" onclick="confirmBingoDone()"
+        style="width:100%;padding:14px;background:var(--amber-bg);border:0.5px solid var(--amber-border);border-radius:var(--radius-sm);color:var(--amber);font-size:15px;font-family:var(--sans);cursor:pointer;margin-bottom:8px">
+        ✓ 標記達成
+      </button>
+      <button onclick="confirmBingoPhoto()"
+        style="width:100%;padding:14px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:15px;font-family:var(--sans);cursor:pointer;margin-bottom:8px">
+        📷 標記達成 + 上傳照片
+      </button>
+      <button id="bingo-action-undo" onclick="confirmBingoUndo()" style="display:none;width:100%;padding:14px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);color:var(--red);font-size:15px;font-family:var(--sans);cursor:pointer;margin-bottom:8px">
+        ✕ 取消達成
+      </button>
+      <button onclick="closeBingoActionSheet()"
+        style="width:100%;padding:14px;background:transparent;border:none;color:var(--text3);font-size:15px;font-family:var(--sans);cursor:pointer">
+        取消
+      </button>
+    </div>
+  </div>
+
 </main>
 
 <nav class="nav">
@@ -882,40 +904,74 @@ function saveBingoEdit(){
   save(); renderBingo();
 }
 
+let bingoActionIdx = null;
+
 function startLongPress(i, e){
   endLongPress();
   bingoLongPressTimer = setTimeout(()=>{
     bingoLongPressTimer=null;
-    markBingoDone(i);
+    openBingoActionSheet(i);
   }, 600);
 }
 
-function endLongPress(e, i){
+function endLongPress(){
   if(bingoLongPressTimer){
     clearTimeout(bingoLongPressTimer);
     bingoLongPressTimer=null;
   }
 }
 
-function markBingoDone(i){
+function openBingoActionSheet(i){
+  bingoActionIdx = i;
   const cell = state.bingo[i];
-  if(cell.done){
-    // undo
-    cell.done=false; cell.imgUrl='';
-    save(); renderBingo(); return;
-  }
-  // mark done - ask for photo or just check
-  cell.done=true;
-  save(); renderBingo();
-  // offer photo upload
-  document.getElementById('bingo-file').onchange = async(e)=>{
-    const file = e.target.files[0];
-    if(!file){ e.target.value=''; return; }
-    await uploadBingoPhoto(i, file);
-    e.target.value='';
-  };
-  document.getElementById('bingo-file').click();
+  const sheet = document.getElementById('bingo-action-sheet');
+  document.getElementById('bingo-action-label').textContent = cell.text || '（未填寫）';
+  document.getElementById('bingo-action-done').style.display = cell.done ? 'none' : 'block';
+  document.getElementById('bingo-action-undo').style.display = cell.done ? 'block' : 'none';
+  // hide photo option if already done with photo
+  sheet.querySelector('button[onclick="confirmBingoPhoto()"]').style.display = cell.done ? 'none' : 'block';
+  sheet.style.display='flex';
 }
+
+function closeBingoActionSheet(){
+  document.getElementById('bingo-action-sheet').style.display='none';
+  bingoActionIdx=null;
+}
+
+function confirmBingoDone(){
+  if(bingoActionIdx===null) return;
+  state.bingo[bingoActionIdx].done = true;
+  closeBingoActionSheet();
+  save(); renderBingo();
+  showToast('已標記達成 🎉');
+}
+
+function confirmBingoUndo(){
+  if(bingoActionIdx===null) return;
+  state.bingo[bingoActionIdx].done = false;
+  state.bingo[bingoActionIdx].imgUrl = '';
+  closeBingoActionSheet();
+  save(); renderBingo();
+}
+
+function confirmBingoPhoto(){
+  if(bingoActionIdx===null) return;
+  closeBingoActionSheet();
+  const i = bingoActionIdx;
+  state.bingo[i].done = true;
+  save(); renderBingo();
+  setTimeout(()=>{
+    document.getElementById('bingo-file').onchange = async(e)=>{
+      const file = e.target.files[0];
+      if(!file){ e.target.value=''; return; }
+      await uploadBingoPhoto(i, file);
+      e.target.value='';
+    };
+    document.getElementById('bingo-file').click();
+  }, 300);
+}
+
+function markBingoDone(i){ openBingoActionSheet(i); }
 
 async function uploadBingoPhoto(i, file){
   const path = `bingo-${i}.${file.name.split('.').pop()||'jpg'}`;
