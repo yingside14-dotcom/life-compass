@@ -422,13 +422,17 @@ input[type=range] { width: 100%; accent-color: var(--amber); margin: 4px 0; }
   <div id="bingo-action-sheet" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.6);align-items:flex-end;justify-content:center">
     <div style="background:var(--bg2);border-radius:16px 16px 0 0;padding:16px;width:100%;max-width:520px">
       <div id="bingo-action-label" style="font-size:13px;color:var(--text3);text-align:center;margin-bottom:14px;padding-bottom:12px;border-bottom:0.5px solid var(--border)"></div>
+      <button id="bingo-action-edit" onclick="closeBingoActionSheetAndEdit()"
+        style="width:100%;padding:14px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:15px;font-family:var(--sans);cursor:pointer;margin-bottom:8px">
+        ✏️ 編輯文字
+      </button>
       <button id="bingo-action-done" onclick="confirmBingoDone()"
         style="width:100%;padding:14px;background:var(--amber-bg);border:0.5px solid var(--amber-border);border-radius:var(--radius-sm);color:var(--amber);font-size:15px;font-family:var(--sans);cursor:pointer;margin-bottom:8px">
         ✓ 標記達成
       </button>
-      <label for="bingo-file" onclick="confirmBingoPhoto()"
+      <label id="bingo-action-photo" for="bingo-file"
         style="display:block;width:100%;padding:14px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:15px;font-family:var(--sans);cursor:pointer;margin-bottom:8px;text-align:center;box-sizing:border-box">
-        📷 標記達成 + 上傳照片
+        📷 上傳照片
       </label>
       <button id="bingo-action-undo" onclick="confirmBingoUndo()" style="display:none;width:100%;padding:14px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);color:var(--red);font-size:15px;font-family:var(--sans);cursor:pointer;margin-bottom:8px">
         ✕ 取消達成
@@ -860,24 +864,17 @@ function renderBingo(){
 
   grid.innerHTML = state.bingo.map((cell,i)=>{
     if(cell.done && cell.imgUrl){
-      return `<div class="bingo-cell bingo-done" style="position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;cursor:pointer"
-        ontouchstart="startLongPress(${i},event)" ontouchend="endLongPress()" ontouchcancel="endLongPress()"
-        onmousedown="startLongPress(${i},event)" onmouseup="endLongPress()" onmouseleave="endLongPress()">
+      return `<div onclick="openBingoActionSheet(${i})" style="position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;cursor:pointer;user-select:none">
         <img src="${cell.imgUrl}" style="width:100%;height:100%;object-fit:cover;display:block">
         <div style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,0.5);border-radius:99px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:10px">✓</div>
       </div>`;
     } else if(cell.done){
-      return `<div class="bingo-cell bingo-done" style="aspect-ratio:1;border-radius:8px;background:var(--amber-bg);border:1.5px solid var(--amber-border);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;cursor:pointer;text-align:center"
-        ontouchstart="startLongPress(${i},event)" ontouchend="endLongPress()" ontouchcancel="endLongPress()"
-        onmousedown="startLongPress(${i},event)" onmouseup="endLongPress()" onmouseleave="endLongPress()">
+      return `<div onclick="openBingoActionSheet(${i})" style="aspect-ratio:1;border-radius:8px;background:var(--amber-bg);border:1.5px solid var(--amber-border);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px;cursor:pointer;text-align:center;user-select:none">
         <div style="font-size:16px;margin-bottom:2px">✓</div>
         <div style="font-size:9px;color:var(--amber);line-height:1.3;word-break:break-all">${cell.text||''}</div>
       </div>`;
     } else {
-      return `<div class="bingo-cell" style="aspect-ratio:1;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;padding:6px;cursor:pointer;text-align:center"
-        onclick="openBingoEdit(${i})"
-        ontouchstart="startLongPress(${i},event)" ontouchend="endLongPress(event,${i})" ontouchcancel="endLongPress()"
-        onmousedown="startLongPress(${i},event)" onmouseup="endLongPress(event,${i})" onmouseleave="endLongPress()">
+      return `<div onclick="openBingoActionSheet(${i})" style="aspect-ratio:1;border-radius:8px;background:var(--bg3);border:0.5px solid var(--border);display:flex;align-items:center;justify-content:center;padding:6px;cursor:pointer;text-align:center;user-select:none">
         <div style="font-size:10px;color:${cell.text?'var(--text2)':'var(--text3)'};line-height:1.4;word-break:break-all">${cell.text||'+'}</div>
       </div>`;
     }
@@ -906,31 +903,30 @@ function saveBingoEdit(){
 
 let bingoActionIdx = null;
 
-function startLongPress(i, e){
-  endLongPress();
-  bingoLongPressTimer = setTimeout(()=>{
-    bingoLongPressTimer=null;
-    openBingoActionSheet(i);
-  }, 600);
-}
-
-function endLongPress(){
-  if(bingoLongPressTimer){
-    clearTimeout(bingoLongPressTimer);
-    bingoLongPressTimer=null;
-  }
-}
-
 function openBingoActionSheet(i){
   bingoActionIdx = i;
   const cell = state.bingo[i];
-  const sheet = document.getElementById('bingo-action-sheet');
   document.getElementById('bingo-action-label').textContent = cell.text || '（未填寫）';
+  document.getElementById('bingo-action-edit').style.display = cell.done ? 'none' : 'block';
   document.getElementById('bingo-action-done').style.display = cell.done ? 'none' : 'block';
   document.getElementById('bingo-action-undo').style.display = cell.done ? 'block' : 'none';
-  // hide photo option if already done with photo
-  sheet.querySelector('button[onclick="confirmBingoPhoto()"]').style.display = cell.done ? 'none' : 'block';
-  sheet.style.display='flex';
+  document.getElementById('bingo-action-photo').style.display = 'block';
+  // wire up file input
+  document.getElementById('bingo-file').onchange = async(e)=>{
+    const file = e.target.files[0];
+    if(!file){ e.target.value=''; return; }
+    state.bingo[bingoActionIdx !== null ? bingoActionIdx : i].done = true;
+    save(); renderBingo();
+    await uploadBingoPhoto(i, file);
+    e.target.value='';
+  };
+  document.getElementById('bingo-action-sheet').style.display='flex';
+}
+
+function closeBingoActionSheetAndEdit(){
+  const i = bingoActionIdx;
+  closeBingoActionSheet();
+  openBingoEdit(i);
 }
 
 function closeBingoActionSheet(){
@@ -954,23 +950,9 @@ function confirmBingoUndo(){
   save(); renderBingo();
 }
 
-function confirmBingoPhoto(){
-  if(bingoActionIdx===null) return;
-  const i = bingoActionIdx;
-  // set up handler before closing sheet
-  document.getElementById('bingo-file').onchange = async(e)=>{
-    const file = e.target.files[0];
-    if(!file){ e.target.value=''; return; }
-    state.bingo[i].done = true;
-    save(); renderBingo();
-    await uploadBingoPhoto(i, file);
-    e.target.value='';
-  };
-  // mark done optimistically only after photo chosen
-  closeBingoActionSheet();
-}
 
-function markBingoDone(i){ openBingoActionSheet(i); }
+
+
 
 async function uploadBingoPhoto(i, file){
   const path = `bingo-${i}.${file.name.split('.').pop()||'jpg'}`;
