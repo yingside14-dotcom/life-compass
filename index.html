@@ -426,10 +426,10 @@ input[type=range] { width: 100%; accent-color: var(--amber); margin: 4px 0; }
         style="width:100%;padding:14px;background:var(--amber-bg);border:0.5px solid var(--amber-border);border-radius:var(--radius-sm);color:var(--amber);font-size:15px;font-family:var(--sans);cursor:pointer;margin-bottom:8px">
         ✓ 標記達成
       </button>
-      <button onclick="confirmBingoPhoto()"
-        style="width:100%;padding:14px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:15px;font-family:var(--sans);cursor:pointer;margin-bottom:8px">
+      <label for="bingo-file" onclick="confirmBingoPhoto()"
+        style="display:block;width:100%;padding:14px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:15px;font-family:var(--sans);cursor:pointer;margin-bottom:8px;text-align:center;box-sizing:border-box">
         📷 標記達成 + 上傳照片
-      </button>
+      </label>
       <button id="bingo-action-undo" onclick="confirmBingoUndo()" style="display:none;width:100%;padding:14px;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);color:var(--red);font-size:15px;font-family:var(--sans);cursor:pointer;margin-bottom:8px">
         ✕ 取消達成
       </button>
@@ -956,19 +956,18 @@ function confirmBingoUndo(){
 
 function confirmBingoPhoto(){
   if(bingoActionIdx===null) return;
-  closeBingoActionSheet();
   const i = bingoActionIdx;
-  state.bingo[i].done = true;
-  save(); renderBingo();
-  setTimeout(()=>{
-    document.getElementById('bingo-file').onchange = async(e)=>{
-      const file = e.target.files[0];
-      if(!file){ e.target.value=''; return; }
-      await uploadBingoPhoto(i, file);
-      e.target.value='';
-    };
-    document.getElementById('bingo-file').click();
-  }, 300);
+  // set up handler before closing sheet
+  document.getElementById('bingo-file').onchange = async(e)=>{
+    const file = e.target.files[0];
+    if(!file){ e.target.value=''; return; }
+    state.bingo[i].done = true;
+    save(); renderBingo();
+    await uploadBingoPhoto(i, file);
+    e.target.value='';
+  };
+  // mark done optimistically only after photo chosen
+  closeBingoActionSheet();
 }
 
 function markBingoDone(i){ openBingoActionSheet(i); }
